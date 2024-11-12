@@ -67,10 +67,11 @@ resizeCanvas();
 window.onresize = resizeCanvas;
 
 function drawRectangleAndFadeOut(areaIndex) {
-    const distance = canvasElement.width / numAreas;
-    const rectX = areaIndex * distance;
+    const margin = canvasElement.width / 10;
+    const distance = (canvasElement.width - margin * 2) / numAreas;
+    const rectX = areaIndex * distance + margin;
     const rectY = canvasElement.height - canvasElement.height/ 3;
-    const rectWidth = canvasElement.width / numAreas;
+    const rectWidth = distance;
     const rectHeight = canvasElement.height/ 3;
     const fadeDuration = 1000; // 1 second
     const fadeSteps = 30; // Assuming 60 frames per second
@@ -248,12 +249,13 @@ let previousAreaRight = -1;
 function drawGrid(ctx, width, height) {
     const gridHeight = height / 3;
     const startY = height - gridHeight;
-    const cellWidth = width / numAreas;
+    const margin = width / 10;
+    const cellWidth = (width - margin * 2) / numAreas;
 
     // draw transparent background:
     ctx.globalAlpha = 0.18; // Set the current opacity
     ctx.fillStyle = 'blue';
-    ctx.fillRect(0, canvasElement.height - canvasElement.height / 3, canvasElement.width, canvasElement.height / 3);
+    ctx.fillRect(margin, startY, width - margin * 2, gridHeight);
     ctx.globalAlpha = 1.0; // Reset alpha for other drawings
 
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
@@ -261,7 +263,7 @@ function drawGrid(ctx, width, height) {
 
     // Draw vertical lines
     for (let i = 0; i <= numAreas; i++) {
-        const x = i * cellWidth;
+        const x = i * cellWidth + margin;
         ctx.beginPath();
         ctx.moveTo(x, startY);
         ctx.lineTo(x, height);
@@ -270,13 +272,13 @@ function drawGrid(ctx, width, height) {
 
     // Draw horizontal lines (top and bottom of grid)
     ctx.beginPath();
-    ctx.moveTo(0, startY);
-    ctx.lineTo(width, startY);
+    ctx.moveTo(margin, startY);
+    ctx.lineTo(width - margin, startY);
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(0, height);
-    ctx.lineTo(width, height);
+    ctx.moveTo(margin, height);
+    ctx.lineTo(width - margin, height);
     ctx.stroke();
 }
 
@@ -342,7 +344,8 @@ function onResults(results) {
   drawGrid(canvasCtx, canvasElement.width, canvasElement.height);
 
   if (cameraStarted) {
-    const cellWidth = canvasElement.width / numAreas;
+    const margin = canvasElement.width / 10;
+    const cellWidth = (canvasElement.width - margin * 2) / numAreas;
     const gridHeight = canvasElement.height / 3;
     const startY = canvasElement.height - gridHeight;
     let notes = []
@@ -352,7 +355,8 @@ function onResults(results) {
         notes = ['G', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'A', 'B', 'C']
     }
     for (let i = 0; i < numAreas; i++) {
-        const rectX = i * cellWidth;
+        
+        const rectX = i * cellWidth + margin;
         drawTextInRectangle(notes[i], rectX, startY, cellWidth, gridHeight);
     }
   }
@@ -397,12 +401,16 @@ function onResults(results) {
         const displayY = indexTip.y * canvasElement.height;
         
         // checkAndTriggerAudio(displayX, displayY, canvasElement.width, canvasElement.height);
-        const cellWidth = canvasElement.width / numAreas;
-        const areaIndex = Math.floor(displayX / cellWidth);
+        const barMargin = canvasElement.width / 10;
+        const activeGridWidth = canvasElement.width - (2 * barMargin); 
+        const cellWidth = activeGridWidth / numAreas;
+        const areaIndex = Math.floor((displayX - barMargin) / cellWidth);
         const gridHeight = canvasElement.height / 3;
         const startY = canvasElement.height - gridHeight;
         
-        const isInGrid = (displayY >= startY) ? 1: 0;
+
+        let isInGrid = (displayY >= startY) ? 1: 0;
+        isInGrid = (displayX >= barMargin && displayX <= (canvasElement.width - barMargin)) ? isInGrid : 0;
         
         // register transition:
         if (handIndex == 0){
