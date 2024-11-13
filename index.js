@@ -21,8 +21,10 @@ let exerciseID = 0;
 let soundOffset = 0;
 const numAreas = 11;
 const gray = 'hsl(0, 0%, 90%)';
-const green = 'hsl(120, 50%, 80%)';
+const green = 'hsl(90, 50%, 80%)';
 metallophoneButton.style.backgroundColor = green;
+metallophoneButton.classList.add('toggle-button');
+
 
 let xPositions = getFixedXPositions(); // Calculate the 11 fixed x positions
 
@@ -546,7 +548,8 @@ if (!cameraStarted) {
 startButton.addEventListener('click', async () => {
     if (cameraStarted) {
       //try {
-        startButton.style.backgroundColor = 'hsl(0, 0%, 90%)';
+        startButton.style.backgroundColor = gray;
+        startButton.classList.remove('toggle-button');
         canvasElement.style.display = 'none';  // Hide the canvas
         infoParagraphs.style.display = 'block'; // Show the paragraphs
         await camera.stop()
@@ -565,7 +568,8 @@ startButton.addEventListener('click', async () => {
             await camera.start(); 
       
             // If access is granted, proceed
-            startButton.style.backgroundColor = 'hsl(120, 50%, 80%)';
+            startButton.style.backgroundColor = green;
+            startButton.classList.add('toggle-button');
             canvasElement.style.display = 'block'; 
             infoParagraphs.style.display = 'none';  
             canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
@@ -597,6 +601,11 @@ function selectMetallophone (){
     metallophoneButton.style.backgroundColor = green;
     xylophoneButton.style.backgroundColor = gray;
     handpanButton.style.backgroundColor = gray;
+    
+    metallophoneButton.classList.add('toggle-button');
+    xylophoneButton.classList.remove('toggle-button');
+    handpanButton.classList.remove('toggle-button');
+    
     soundID = 0;
     soundOffset =0;
 }
@@ -604,6 +613,9 @@ function selectXylophone (){
     metallophoneButton.style.backgroundColor = gray;
     xylophoneButton.style.backgroundColor = green;
     handpanButton.style.backgroundColor = gray;
+    metallophoneButton.classList.remove('toggle-button');
+    xylophoneButton.classList.add('toggle-button');
+    handpanButton.classList.remove('toggle-button');
     soundID = 1;
     soundOffset = numAreas * 1 ;
 }
@@ -611,6 +623,9 @@ function selectHandpan(){
     metallophoneButton.style.backgroundColor = gray;
     xylophoneButton.style.backgroundColor = gray;
     handpanButton.style.backgroundColor = green;
+    metallophoneButton.classList.remove('toggle-button');
+    xylophoneButton.classList.remove('toggle-button');
+    handpanButton.classList.add('toggle-button');
     soundID = 2;
     soundOffset = numAreas * 2;
 }
@@ -621,15 +636,19 @@ function selectHandpan(){
 
 
 function stopAnimation() {
-        if (animationId) {
-            cancelAnimationFrame(animationId); // Cancel the animation loop
-        }
-        clearTimeout(rectangleCreationTimeout); // Cancel any scheduled rectangle creation
-        exercise1Button.style.backgroundColor = gray;
-        exercise2Button.style.backgroundColor = gray;
+    if (animationId) {
+        cancelAnimationFrame(animationId); // Cancel the animation loop
     }
+    clearTimeout(rectangleCreationTimeout); // Cancel any scheduled rectangle creation
+    resetExerciseButtons();
+}
 
-
+function resetExerciseButtons(){
+    exercise1Button.style.backgroundColor = gray;
+    exercise2Button.style.backgroundColor = gray;
+    exercise1Button.classList.remove('toggle-button');
+    exercise2Button.classList.remove('toggle-button');
+}
 
 function startAnimation(){
     rectangles = [];
@@ -645,19 +664,37 @@ function startAnimation(){
 }
 
 function exercise1 (){
-    exerciseID = 0;
+    
     if(exerciseIsRunning && exerciseID == 0){
         exerciseIsRunning = false;
         stopAnimation();
+        
         // exercise1Button.style.backgroundColor = gray;
         // exercise2Button.style.backgroundColor = gray;
+    } else if (exerciseIsRunning && exerciseID == 1){
+        exerciseIsRunning = false;
+        stopAnimation();
+
+        exerciseID = 0;
+        if (cameraStarted){
+            exerciseIsRunning = true;
+            // if (exerciseIsRunning){stopAnimation();}
+            exercise1Button.style.backgroundColor = green;
+            exercise2Button.style.backgroundColor = gray;
+            exercise1Button.classList.add('toggle-button');
+            exercise2Button.classList.remove('toggle-button');
+            startAnimation();
+        }
     }
     else{
+        exerciseID = 0;
         if (cameraStarted){
             exerciseIsRunning = true;
             if (exerciseIsRunning){stopAnimation();}
             exercise1Button.style.backgroundColor = green;
             exercise2Button.style.backgroundColor = gray;
+            exercise1Button.classList.add('toggle-button');
+            exercise2Button.classList.remove('toggle-button');
             startAnimation();
         }
 
@@ -666,18 +703,39 @@ function exercise1 (){
     
 }
 function exercise2() {
-    exerciseID = 1;
+    // if (exerciseIsRunning && exerciseID == 0){stopAnimation();}
+
+    // exerciseID = 1;
     if (exerciseIsRunning && exerciseID == 1){
         exerciseIsRunning = false;
         stopAnimation();
+
         // exercise1Button.style.backgroundColor = gray;
         // exercise2Button.style.backgroundColor = gray;
-    } else {
+    } else if (exerciseIsRunning && exerciseID == 0){
+        exerciseIsRunning = false;
+        stopAnimation();
+
+        exerciseID = 1;
         if (cameraStarted){
+            // if (exerciseIsRunning){stopAnimation();}
             exerciseIsRunning = true;
-            if (exerciseIsRunning){stopAnimation();}
             exercise1Button.style.backgroundColor = gray;
             exercise2Button.style.backgroundColor = green;
+            exercise1Button.classList.remove('toggle-button');
+            exercise2Button.classList.add('toggle-button');
+            startAnimation();
+        }
+    }
+    else {
+        exerciseID = 1;
+        if (cameraStarted){
+            if (exerciseIsRunning){stopAnimation();}
+            exerciseIsRunning = true;
+            exercise1Button.style.backgroundColor = gray;
+            exercise2Button.style.backgroundColor = green;
+            exercise1Button.classList.remove('toggle-button');
+            exercise2Button.classList.add('toggle-button');
             startAnimation();
         }
     }
