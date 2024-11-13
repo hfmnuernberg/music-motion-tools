@@ -4,11 +4,13 @@ const xylophoneButton = document.getElementById('xylophone-button');
 const handpanButton = document.getElementById('handpan-button');
 const exercise1Button = document.getElementById('exercise1-button');
 const exercise2Button = document.getElementById('exercise2-button');
+const tempoSlider = document.getElementById("tempoSlider");
 
 const videoElement = document.getElementsByClassName('input_video')[0];
 const canvasElement = document.getElementsByClassName('output_canvas')[0];
 const canvasCtx = canvasElement.getContext('2d');
 const infoParagraphs = document.getElementById('info-paragraphs');
+
 
 let cameraStarted = false;
 let soundID = 0;
@@ -22,7 +24,7 @@ const gray = 'hsl(0, 0%, 90%)';
 const green = 'hsl(120, 50%, 80%)';
 metallophoneButton.style.backgroundColor = green;
 
-
+let xPositions = getFixedXPositions(); // Calculate the 11 fixed x positions
 
 // Canvas Setup --------------------------------------
 function resizeCanvas() {
@@ -58,7 +60,8 @@ function resizeCanvas() {
     canvasElement.style.width = `${canvasWidth}px`;
     canvasElement.style.height = `${canvasHeight}px`;
 
-    
+    // Recalculate xPositions after resizing
+    xPositions = getFixedXPositions(); 
 }
 
 // Call resizeCanvas initially to set up the canvas size
@@ -113,9 +116,26 @@ function drawRectangleAndFadeOut(areaIndex) {
 
 // moving blocks --------------------------------
 const bluishColor = '#4A90E2'; // Fixed bluish color for the rectangles
-let xPositions = getFixedXPositions(); // Calculate the 11 fixed x positions
+
 // let positionSequence = [4,5,6,4,7,5,6,4,7,4,5,6,4,7,5,6,4,7,4,5,6,4,7,5,6,4,7];
 let positionSequence = [4,4,6,5,7,4,4,6,5,7,4,4,6,5,8,4,4,6,5,8]
+let positionSequences = [
+    [0, 4, 0, 4, 1, 4, 1, 4, 2, 4, 2, 4, 3, 4, 0],
+    [2,3,4,2,2,3,1,1,2,3,1,5,5,4],
+    [7, 4, 7, 4, 7, 4, 7, 4, 6, 4, 6, 4, 6, 3, 7, 2],
+]
+
+let bpm = 25; //distance between successive blocks
+let quarter = 60/bpm * 1000;
+let sixteen = quarter / 2;
+timeLists = [
+    [quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter],
+    [sixteen, sixteen, sixteen, quarter, quarter, quarter, quarter, quarter, sixteen, sixteen, quarter, quarter, sixteen, sixteen, sixteen],
+    [quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, 1],
+]
+let tempo = 0.9;
+
+
 const initialPositionSequence = [...positionSequence]; // Save the initial sequence
 let rectangles = [];
 let animationId;
@@ -127,11 +147,43 @@ let rectangleCreationTimeout;
 let timeIntervals = [0,750,500,250,250,250,750,500,250,250,250,750,500,250,250,250 ,750,500,250,250,250]
 let currentIntervalIndex = 0;
 
+
+tempoSlider.addEventListener("input", function() {
+    /// Scale value 0-1 to 0.8-1.2
+
+    tempo = (tempoSlider.value / 50) + 0.5; // Get the slider value (0-100)
+
+    // scale bpm (distance) to 25-75 
+    bpm = (tempoSlider.value / 100) * 75 + 25;
+
+    // Recalculate quarter and sixteen notes based on new bpm
+    quarter = 60 / bpm * 1000;
+    sixteen = quarter / 2;
+
+    // Update the timeLists array with the new durations
+    timeLists = [
+        [quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter],
+        [sixteen, sixteen, sixteen, quarter, quarter, quarter, quarter, quarter, sixteen, sixteen, quarter, quarter, sixteen, sixteen, sixteen],
+        [quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, 1],
+    ];
+    for (let i = 0; i < rectangles.length; i++) {
+        rectangles[i].speed = tempo;
+    }
+    // Now use the 'volume' variable to control the audio volume
+    // gainNode.gain.value = volume; 
+    // Update the speed of all existing rectangles
+    // for (let i = 0; i < rectangles.length; i++) {
+    //     rectangles[i].speed = tempo;
+    // }
+});
+
+
 function getFixedXPositions() {
     const positions = [];
-    const step = canvasElement.width / 11;
+    const barMargin = canvasElement.width / 10;
+    const step = (canvasElement.width - barMargin * 2) / 11;
     for (let i = 0; i < 11; i++) {
-        positions.push(i * step + step / 2);
+        positions.push(i * step + step / 2 + barMargin);
     }
     return positions;
 }
@@ -139,27 +191,22 @@ function getFixedXPositions() {
 async function createRectangle() {
     if (positionSequence.length > 0) {
         const index = positionSequence.shift(); // Get the next position index from the sequence
+        const barMargin = canvasElement.width / 10;
+        const blockWidth = (canvasElement.width - 2 * barMargin) / numAreas * 0.95;
+        const blockHeight = canvasElement.height / 20;
         const rect = {
             x: xPositions[index], // Use the predefined x position
             y: -20, // Start just above the canvas
-            width: 60, // Fixed width
-            height: 30, // Fixed height
-            speed: 2, // speed
+            width: blockWidth, // Fixed width
+            height: blockHeight, // Fixed height
+            speed: tempo, // speed
             color: bluishColor // Fixed bluish color
         };
         rectangles.push(rect);
 
         // update the timeIntervals according to the choosen exercise
         // -->>>>
-        const bpm = 60;
-        let quarter = 60/bpm * 1000;
-        let sixteen = quarter / 2;
-        if (exerciseID == 0){
-            timeIntervals = [quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, quarter, 1]
-        } else if (exerciseID == 1){
-            timeIntervals = [sixteen, sixteen, sixteen, quarter, quarter, quarter, quarter, quarter, sixteen, sixteen, quarter, quarter, sixteen, sixteen, sixteen]   
-        }
-
+        timeIntervals = [...timeLists[exerciseID]];
         // Schedule the creation of the next rectangle based on the next time interval
         currentIntervalIndex = (currentIntervalIndex + 1) % timeIntervals.length;
         if (positionSequence.length > 0) {
@@ -170,10 +217,19 @@ async function createRectangle() {
 
 async function updateRectangles() {
     // ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+    // Recalculate block dimensions and positions based on current canvas size
+    const barMargin = canvasElement.width / 10;
+    const blockWidth = (canvasElement.width - 2 * barMargin) / numAreas * 0.95;
+    const blockHeight = canvasElement.height / 20;
 
     for (let i = 0; i < rectangles.length; i++) {
         const rect = rectangles[i];
         rect.y += rect.speed; // Move the rectangle down
+        // Update rectangle's x position and dimensions
+        // rect.x = xPositions[Math.floor(rect.x / blockWidth)]; // Recalculate x-position
+        rect.width = blockWidth;
+        rect.height = blockHeight;
+
         canvasCtx.fillStyle = rect.color;
         canvasCtx.fillRect(rect.x - rect.width / 2, rect.y, rect.width, rect.height);
 
@@ -577,8 +633,9 @@ function stopAnimation() {
 
 function startAnimation(){
     rectangles = [];
-    if (exerciseID == 0){positionSequence = [7, 4, 7, 4, 7, 4, 7, 4, 6, 4, 6, 4, 6, 3, 7, 2]; // Reset the position sequence
-        }else if(exerciseID == 1){positionSequence = [2,3,4,2,2,3,1,1,2,3,1,5,5,4];}
+    // if (exerciseID == 0){positionSequence = [7, 4, 7, 4, 7, 4, 7, 4, 6, 4, 6, 4, 6, 3, 7, 2]; // Reset the position sequence
+    //     }else if(exerciseID == 1){positionSequence = [2,3,4,2,2,3,1,1,2,3,1,5,5,4];}
+    positionSequence = [...positionSequences[exerciseID]]
     
     xPositions = getFixedXPositions(); // Recalculate positions in case of a resize
     currentIntervalIndex = 0; // Reset the interval index
